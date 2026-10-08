@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>BONSICOLA TOOL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<audio id="bgMusic" loop preload="none"></audio>
+
+<!-- ============================================================
+     LOGIN SCREEN
+     ============================================================ -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1 class="login-title" id="loginSiteName">TOOL BONSICOLA</h1>
+    <p class="login-sub"><i class="fa-solid fa-shield-halved"></i> <span id="subText">Đăng nhập hệ thống</span></p>
+
+    <div class="login-avatar" id="avatarTrigger" title="Nhấn giữ để đổi avatar">
+      <div class="login-avatar-ring"></div>
+      <img id="loginAvatarImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect fill='%23e0f2fe' width='200' height='200'/><text x='50%25' y='56%25' font-size='90' text-anchor='middle' dominant-baseline='middle'>🎀</text></svg>">
+      <div class="login-online-dot"></div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">ĐĂNG NHẬP</button>
+      <button class="auth-tab" id="tabReg" onclick="switchTab('reg')">ĐĂNG KÝ</button>
+    </div>
+
+    <!-- FORM LOGIN -->
+    <div id="formLogin">
+      <div class="login-input-group">
+        <i class="fa-solid fa-envelope icon-left"></i>
+        <input type="email" id="loginEmail" placeholder="Email..." autocomplete="off">
+      </div>
+      <div class="login-input-group">
+        <i class="fa-solid fa-lock icon-left"></i>
+        <input type="password" id="loginPass" placeholder="Mật khẩu..." autocomplete="off">
+      </div>
+      <button class="login-btn" id="btnLogin" onclick="doLogin()">
+        <span class="login-spinner" id="loginSpinner"></span>
+        <span id="btnLoginText"><i class="fa-solid fa-right-to-bracket"></i> ĐĂNG NHẬP</span>
+      </button>
+    </div>
+
+    <!-- FORM REGISTER -->
+    <div id="formReg" style="display:none">
+      <div class="login-input-group">
+        <i class="fa-solid fa-user icon-left"></i>
+        <input type="text" id="regName" placeholder="Tên hiển thị...">
+      </div>
+      <div class="login-input-group">
+        <i class="fa-solid fa-envelope icon-left"></i>
+        <input type="email" id="regEmail" placeholder="Email...">
+      </div>
+      <div class="login-input-group">
+        <i class="fa-solid fa-lock icon-left"></i>
+        <input type="password" id="regPass" placeholder="Mật khẩu...">
+      </div>
+      <div class="login-input-group">
+        <i class="fa-solid fa-lock icon-left"></i>
+        <input type="password" id="regPass2" placeholder="Nhập lại mật khẩu...">
+      </div>
+      <p style="font-size:11px;color:#94a3b8;text-align:center;margin:6px 0;font-weight:600">
+        ⚠️ Tài khoản sẽ khoá vào thiết bị (IP) hiện tại
+      </p>
+      <button class="login-btn" id="btnReg" onclick="doRegister()">
+        <span class="login-spinner" id="regSpinner"></span>
+        <span id="btnRegText"><i class="fa-solid fa-user-plus"></i> ĐĂNG KÝ</span>
+      </button>
+    </div>
+
+    <div class="login-error" id="loginError"></div>
+    <p class="login-footer">©TOOL•<span>BONIOS</span></p>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP
+     ============================================================ -->
+<div id="app" style="display:none">
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="left">
+      <button class="menu-btn" onclick="openDrawer()"><i class="fa-solid fa-bars"></i></button>
+      <div class="brand" id="hdrBrand">BONSICOLA TOOL</div>
+    </div>
+    <div class="right">
+      <button class="music-btn" id="musicBtn" onclick="toggleMusic()"><i class="fa-solid fa-volume-xmark"></i></button>
+      <div class="balance-chip" onclick="showPage('deposit')"><i class="fa-solid fa-wallet"></i> <span id="hdrBalance">0đ</span></div>
+      <div class="user-avatar" onclick="showPage('profile')"><img id="hdrAvatar" src=""></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="app-content" id="appContent">
+
+    <!-- ============ HOME PAGE ============ -->
+    <div class="page active" id="page-home">
+      <div class="banner">
+        <div class="in">
+          <div><div class="txt" id="marqueeText">Đang tải...</div></div>
+          <div class="rocket">🚀</div>
+        </div>
+      </div>
+      <div class="deposit-btn-wrap">
+        <button class="deposit-btn" onclick="showPage('deposit')">
+          <i class="fa-solid fa-plus"></i> NẠP TIỀN
+        </button>
+      </div>
+      <div class="clock-card">
+        <div class="clock-icon"><i class="fa-regular fa-clock"></i></div>
+        <div class="clock-time" id="liveClock">00:00:00</div>
+        <div class="clock-date" id="liveDate">01/01/2026</div>
+      </div>
+      <div class="section-title">Tổng Quan</div>
+      <div class="grid-2">
+        <div class="stat-card" onclick="showPage('deposit')">
+          <div class="stat-icon blue"><i class="fa-regular fa-credit-card"></i></div>
+          <div class="stat-label">NẠP TIỀN</div>
+          <div class="stat-value">Giao dịch</div>
+        </div>
+        <div class="stat-card" onclick="showPage('tools')">
+          <div class="stat-icon purple"><i class="fa-solid fa-cubes"></i></div>
+          <div class="stat-label">KHO TOOL</div>
+          <div class="stat-value"><span id="toolCount">0</span> công cụ</div>
+        </div>
+        <div class="stat-card" onclick="showPage('vip')">
+          <div class="stat-icon yellow"><i class="fa-solid fa-crown"></i></div>
+          <div class="stat-label">GÓI HIỆN TẠI</div>
+          <div class="stat-value" id="curPackage">Chưa có</div>
+        </div>
+        <div class="stat-card" onclick="showPage('profile')">
+          <div class="stat-icon green"><i class="fa-solid fa-wallet"></i></div>
+          <div class="stat-label">SỐ DƯ</div>
+          <div class="stat-value" id="curBalance">0đ</div>
+        </div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ============ TOOLS PAGE ============ -->
+    <div class="page" id="page-tools">
+      <div class="tools-header">
+        <h2>Kho Tiện Ích & Game</h2>
+        <p>Ấn vào game để mở tool AI</p>
+        <div class="cat-tabs" id="catTabs"></div>
+      </div>
+      <div id="toolList"></div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ============ DEPOSIT PAGE ============ -->
+    <div class="page" id="page-deposit">
+      <div class="dep-hero">
+        <h2>Nạp Tiền Vào Ví</h2>
+        <p>Quét QR hoặc chuyển khoản theo STK</p>
+      </div>
+      <div class="balance-big">
+        <div class="lbl">Số dư ví hiện tại</div>
+        <div class="val" id="depBalance">0đ</div>
+        <div class="sub" id="depStatus">Chưa có key</div>
+      </div>
+      <div id="bankInfo"></div>
+      <div class="section-title">Thao tác</div>
+      <div class="pay-method" onclick="openDepositModal()">
+        <div class="pay-icon"><i class="fa-solid fa-paper-plane"></i></div>
+        <div class="pay-info">
+          <div class="name">Gửi yêu cầu nạp tiền</div>
+          <div class="desc">Admin duyệt trong 24h</div>
+        </div>
+        <i class="fa-solid fa-chevron-right pay-arrow"></i>
+      </div>
+      <div class="pay-method" onclick="openHistoryDeposit()">
+        <div class="pay-icon green"><i class="fa-solid fa-clock-rotate-left"></i></div>
+        <div class="pay-info">
+          <div class="name">Lịch sử nạp tiền</div>
+          <div class="desc">Xem yêu cầu đã gửi</div>
+        </div>
+        <i class="fa-solid fa-chevron-right pay-arrow"></i>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ============ VIP PAGE ============ -->
+    <div class="page" id="page-vip">
+      <div class="vip-hero">
+        <h2><i class="fa-solid fa-crown"></i> Mua Gói VIP</h2>
+        <p>Có tiền mới mua được — nạp trước</p>
+      </div>
+      <div class="vip-status">
+        <div class="row">
+          <div class="ic"><i class="fa-solid fa-wallet"></i></div>
+          <div style="flex:1">
+            <div class="t1">Số dư khả dụng</div>
+            <div class="t2" id="vipBalance">0đ</div>
+          </div>
+        </div>
+        <div class="box">
+          <div class="lb">Thời hạn key</div>
+          <div class="vl" id="vipExpiry">Chưa kích hoạt</div>
+        </div>
+      </div>
+      <div id="pkgList"></div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ============ PROFILE PAGE ============ -->
+    <div class="page" id="page-profile">
+      <div class="profile-head">
+        <div class="profile-avatar-wrap">
+          <img id="profAvatar" src="">
+          <div class="camera" onclick="openAvatarModal()"><i class="fa-solid fa-camera"></i></div>
+        </div>
+        <div class="profile-name" id="profName">Người dùng</div>
+        <div class="profile-role" id="profRole">THÀNH VIÊN</div>
+      </div>
+      <div class="info-row"><div class="lbl">Số dư</div><div class="val" id="profBalance">0đ</div></div>
+      <div class="info-row"><div class="lbl">Tham gia</div><div class="val" id="profJoined">—</div></div>
+      <div class="info-row"><div class="lbl">Đăng nhập mới</div><div class="val" id="profLastLogin">—</div></div>
+      <div class="info-row"><div class="lbl">IP thiết bị</div><div class="val" id="profIP">—</div></div>
+      <button class="logout-btn" style="border-color:#bae6fd;background:#eff6ff;color:#0284c7;margin-bottom:8px" onclick="openKeyModal()">
+        <i class="fa-solid fa-key"></i> Nhập Key / Kích Hoạt
+      </button>
+      <button class="logout-btn" onclick="doLogout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Đăng Xuất
+      </button>
+      <div style="height:20px"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-item active" data-page="home" onclick="showPage('home')">
+      <i class="fa-solid fa-house"></i><span>Trang Chủ</span>
+    </button>
+    <button class="nav-item" data-page="tools" onclick="showPage('tools')">
+      <i class="fa-solid fa-cubes"></i><span>Công Cụ</span>
+    </button>
+    <button class="nav-item" data-page="deposit" onclick="showPage('deposit')">
+      <i class="fa-regular fa-credit-card"></i><span>Nạp Tiền</span>
+    </button>
+    <button class="nav-item" data-page="vip" onclick="showPage('vip')">
+      <i class="fa-solid fa-crown"></i><span>Mua VIP</span>
+    </button>
+    <button class="nav-item" data-page="profile" onclick="showPage('profile')">
+      <i class="fa-regular fa-circle-user"></i><span>Cá Nhân</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     DRAWER (MENU 3 GẠCH)
+     ============================================================ -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="dh-avatar"><img id="drawerAvatar" src=""></div>
+    <div class="dh-info">
+      <div class="dh-name" id="drawerName">User</div>
+      <div class="dh-email" id="drawerEmail">user@mail.com</div>
+    </div>
+  </div>
+  <div class="drawer-items">
+    <button class="di" onclick="openKeyModal()"><i class="fa-solid fa-key"></i> Nhập Key kích hoạt</button>
+    <button class="di" onclick="openHistoryDeposit()"><i class="fa-solid fa-wallet"></i> Lịch sử nạp tiền</button>
+    <button class="di" onclick="openHistoryKey()"><i class="fa-solid fa-key"></i> Lịch sử mua key</button>
+    <button class="di" id="diAdmin" onclick="openAdmin()" style="display:none">
+      <i class="fa-solid fa-shield-halved"></i> Quản trị Admin <span class="di-badge" id="pendBadge">0</span>
+    </button>
+    <button class="di danger" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+  </div>
+  <div class="drawer-foot">© TOOL•BONIOS</div>
+</div>
+
+<!-- ============================================================
+     GAME SCREEN (MỞ TOOL)
+     ============================================================ -->
+<div id="game-screen">
+  <div class="gs-header">
+    <button class="gs-close" onclick="closeGame()"><i class="fa-solid fa-arrow-left"></i></button>
+    <div class="gs-title">
+      <img id="gsLogo" src="">
+      <span id="gsName">Tool</span>
+    </div>
+    <div class="gs-status" id="gsStatus">
+      <span class="dot"></span> <span id="gsStatusText">Đang kết nối</span>
+    </div>
+  </div>
+  <iframe id="gameFrame" src="about:blank" class="game-frame" allow="fullscreen;autoplay"></iframe>
+
+  <!-- AI PANEL DRAG -->
+  <div class="drag-group" id="dragPanel" style="top:70px;right:14px">
+    <div class="predict-card">
+      <div class="card-header">
+        <span class="card-title" id="panelTitle">TÀI XỈU</span>
+        <button class="toggle-btn" onclick="togglePanel()">−</button>
+      </div>
+      <div class="card-body" id="panelBody">
+        <span class="sid-value" id="sidValue">#@hk</span>
+        <div class="tx-row">
+          <div class="tx-circle tai" id="taiCircle">--%</div>
+          <div class="tx-circle xiu" id="xiuCircle">--%</div>
+        </div>
+        <div class="status-text" id="statusText">Đang kết nối...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL AVATAR
+     ============================================================ -->
+<div class="overlay" id="avatarModal" onclick="if(event.target===this)closeModal('avatarModal')">
+  <div class="sheet" style="max-width:460px">
+    <div class="sheet-grip"></div>
+    <h3>🎀 Đổi Avatar</h3>
+    <div class="av-preview"><div class="av-preview-circle" id="avPreview">🎀</div></div>
+    <textarea id="avBase64Input" placeholder="Dán Base64 ảnh hoặc URL"></textarea>
+    <div class="av-actions">
+      <button class="av-btn av-save" onclick="saveAvatar()">LƯU</button>
+      <button class="av-btn av-reset" onclick="resetAvatar()">MẶC ĐỊNH</button>
+    </div>
+    <div class="av-status" id="avStatus"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL NHẬP KEY
+     ============================================================ -->
+<div class="overlay" id="keyModal" onclick="if(event.target===this)closeModal('keyModal')">
+  <div class="sheet" style="max-width:420px">
+    <div class="sheet-grip"></div>
+    <h3>🔐 Nhập Key kích hoạt</h3>
+    <p style="text-align:center;font-size:12px;color:#64748b;font-weight:600;margin-bottom:12px">
+      Key chỉ dùng được trên 1 thiết bị duy nhất
+    </p>
+    <input type="text" id="keyInput" class="key-input" placeholder="XXXX-XXXX-XXXX" autocomplete="off">
+    <div class="key-err" id="keyErr"></div>
+    <button class="adm-btn" onclick="activateKey()">
+      <i class="fa-solid fa-unlock"></i> KÍCH HOẠT
+    </button>
+    <button class="adm-btn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);margin-top:6px"
+      onclick="closeModal('keyModal');showPage('deposit')">
+      <i class="fa-solid fa-wallet"></i> NẠP TIỀN MUA VIP
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL NẠP TIỀN
+     ============================================================ -->
+<div class="overlay" id="depositModal" onclick="if(event.target===this)closeModal('depositModal')">
+  <div class="sheet" style="max-width:460px">
+    <div class="sheet-grip"></div>
+    <h3>💸 Gửi yêu cầu nạp tiền</h3>
+    <p style="text-align:center;font-size:12px;color:#64748b;margin-bottom:12px">
+      Nhập số tiền đã chuyển khoản:
+    </p>
+    <input type="number" id="depAmount" class="adm-input" placeholder="VD: 50000" min="10000">
+    <textarea id="depNote" class="adm-textarea" placeholder="Ghi chú (mã GD, nội dung CK...)"></textarea>
+    <button class="adm-btn" onclick="submitDeposit()">
+      <i class="fa-solid fa-paper-plane"></i> GỬI YÊU CẦU
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL LỊCH SỬ
+     ============================================================ -->
+<div class="overlay" id="historyModal" onclick="if(event.target===this)closeModal('historyModal')">
+  <div class="sheet" style="max-width:520px">
+    <div class="sheet-grip"></div>
+    <h3 id="histTitle">Lịch sử</h3>
+    <div id="histContent"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ADMIN PANEL
+     ============================================================ -->
+<div class="overlay" id="adminPanel" onclick="if(event.target===this)closeModal('adminPanel')">
+  <div class="admin-box">
+    <div class="sheet-grip"></div>
+    <div class="admin-title">🛡️ QUẢN TRỊ ADMIN</div>
+
+    <!-- TABS -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-atab="pending" onclick="switchAdminTab('pending')">💰 Duyệt tiền</button>
+      <button class="admin-tab" data-atab="users" onclick="switchAdminTab('users')">👥 Users</button>
+      <button class="admin-tab" data-atab="tools" onclick="switchAdminTab('tools')">🛠 Tools</button>
+      <button class="admin-tab" data-atab="keys" onclick="switchAdminTab('keys')">🔑 Keys</button>
+      <button class="admin-tab" data-atab="history" onclick="switchAdminTab('history')">📜 Lịch sử</button>
+    </div>
+
+    <!-- VIEWS -->
+    <div id="adminPendingView"></div>
+    <div id="adminUsersView" style="display:none"></div>
+    <div id="adminToolsView" style="display:none"></div>
+    <div id="adminKeysView" style="display:none"></div>
+    <div id="adminHistoryView" style="display:none"></div>
+
+    <button class="logout-btn" style="margin-top:10px;border-color:#cbd5e1;background:#f8fafc;color:#475569"
+      onclick="closeModal('adminPanel')">
+      ĐÓNG
+    </button>
+  </div>
+</div>
+
+<!-- FLOAT ADMIN BUTTON -->
+<button class="admin-float" id="adminFloat" onclick="openAdmin()">
+  <i class="fa-solid fa-shield-halved"></i>
+</button>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script src="assets/js/config.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/tools.js"></script>
+<script src="assets/js/admin.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/security.js"></script>
+
+</body>
+</html>
