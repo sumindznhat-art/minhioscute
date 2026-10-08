@@ -2,7 +2,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'keckyxd_bonsicola');
 define('DB_USER', 'keckyxd_admin');
-define('DB_PASS', 'Leminh@123');
+define('DB_PASS', 'leminh@123');
 
 define('ADMIN_EMAIL', 'leminhdz@gmail.com');
 define('ADMIN_PASS', 'admin123');
@@ -45,7 +45,6 @@ if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === basename(__FILE__)) {
         echo '<p style="font-family:sans-serif;padding:0 20px"><b>DB:</b> ' . DB_NAME . ' | <b>User:</b> ' . DB_USER . ' | <b>Bảng users:</b> ' . ($has ? '✅ Có' : '❌ Chưa import SQL') . '</p>';
     } catch (PDOException $e) {
         echo '<h1 style="color:red;font-family:sans-serif;padding:20px">❌ LỖI DB: ' . $e->getMessage() . '</h1>';
-        echo '<p style="font-family:sans-serif;padding:0 20px">Code: ' . $e->getCode() . '</p>';
     }
 }
 ?>
