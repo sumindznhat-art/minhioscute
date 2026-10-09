@@ -42,31 +42,113 @@ function genKey() {
 }
 
 /* ============================================================
-   AUTO-MIGRATE: tự vá cột thiếu (chống server rỗng)
+   AUTO-CREATE TABLES + AUTO-ADD COLUMNS
+   Chạy 1 lần cho mỗi request, an toàn, dùng IF NOT EXISTS
    ============================================================ */
-function ensureColumns() {
+function ensureSchema() {
     static $done = false;
     if ($done) return;
     $done = true;
 
-    $checks = [
-        ['users',    'last_api',     "ALTER TABLE users ADD COLUMN last_api VARCHAR(500) DEFAULT ''"],
-        ['users',    'last_tool',    "ALTER TABLE users ADD COLUMN last_tool VARCHAR(150) DEFAULT ''"],
-        ['users',    'last_tool_at', "ALTER TABLE users ADD COLUMN last_tool_at BIGINT DEFAULT 0"],
-        ['keys',     'note',         "ALTER TABLE `keys` ADD COLUMN note VARCHAR(255) DEFAULT ''"],
-        ['deposits', 'method',       "ALTER TABLE deposits ADD COLUMN method VARCHAR(30) DEFAULT 'bank'"],
-    ];
+    try {
+        $pdo = db();
 
-    foreach ($checks as $c) {
-        try {
-            $s = db()->prepare("SHOW COLUMNS FROM `{$c[0]}` LIKE ?");
-            $s->execute([$c[1]]);
-            if (!$s->fetch()) {
-                db()->exec($c[2]);
-            }
-        } catch (Exception $e) {
-            /* bỏ qua — cột đã có hoặc bảng chưa tạo */
+        /* ---------- BẢNG USERS ---------- */
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(150) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                name VARCHAR(100),
+                balance BIGINT DEFAULT 0,
+                key_expiry BIGINT DEFAULT 0,
+                is_admin TINYINT DEFAULT 0,
+                ip VARCHAR(50),
+                last_login BIGINT DEFAULT 0,
+                created_at BIGINT DEFAULT 0,
+                last_api VARCHAR(500) DEFAULT '',
+                last_tool VARCHAR(150) DEFAULT '',
+                last_tool_at BIGINT DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        /* ---------- BẢNG KEYS ---------- */
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `keys` (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                code VARCHAR(50) UNIQUE NOT NULL,
+                days INT DEFAULT 1,
+                used TINYINT DEFAULT 0,
+                used_by VARCHAR(150),
+                note VARCHAR(255) DEFAULT '',
+                created_at BIGINT DEFAULT 0,
+                used_at BIGINT DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        /* ---------- BẢNG DEPOSITS ---------- */
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS deposits (
+                id VARCHAR(50) PRIMARY KEY,
+                email VARCHAR(150) NOT NULL,
+                amount BIGINT DEFAULT 0,
+                method VARCHAR(30) DEFAULT 'bank',
+                status VARCHAR(20) DEFAULT 'pending',
+                note TEXT,
+                ip VARCHAR(50),
+                created_at BIGINT DEFAULT 0,
+                approved_at BIGINT DEFAULT 0,
+                rejected_at BIGINT DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        /* ---------- BẢNG HISTORY ---------- */
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(150) NOT NULL,
+                type VARCHAR(30),
+                amount BIGINT DEFAULT 0,
+                balance BIGINT DEFAULT 0,
+                note VARCHAR(255),
+                at BIGINT DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        /* ---------- BẢNG CONFIG ---------- */
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS config (
+                k VARCHAR(100) PRIMARY KEY,
+                v LONGTEXT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        /* ---------- AUTO-ADD CỘT THIẾU (DB cũ) ---------- */
+        $checks = [
+            ['users',    'last_api',     "ALTER TABLE users ADD COLUMN last_api VARCHAR(500) DEFAULT ''"],
+            ['users',    'last_tool',    "ALTER TABLE users ADD COLUMN last_tool VARCHAR(150) DEFAULT ''"],
+            ['users',    'last_tool_at', "ALTER TABLE users ADD COLUMN last_tool_at BIGINT DEFAULT 0"],
+            ['keys',     'note',         "ALTER TABLE `keys` ADD COLUMN note VARCHAR(255) DEFAULT ''"],
+            ['deposits', 'method',       "ALTER TABLE deposits ADD COLUMN method VARCHAR(30) DEFAULT 'bank'"],
+        ];
+        foreach ($checks as $c) {
+            try {
+                $s = $pdo->prepare("SHOW COLUMNS FROM `{$c[0]}` LIKE ?");
+                $s->execute([$c[1]]);
+                if (!$s->fetch()) $pdo->exec($c[2]);
+            } catch (Exception $e) { /* bỏ qua */ }
         }
+
+        /* ---------- TẠO ADMIN MẶC ĐỊNH NẾU CHƯA CÓ ---------- */
+        $chk = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+        $chk->execute([ADMIN_EMAIL]);
+        if (!$chk->fetch()) {
+            $pdo->prepare('INSERT INTO users (email, password, name, balance, key_expiry, is_admin, ip, last_login, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)')
+                ->execute([ADMIN_EMAIL, ADMIN_PASS, 'Admin BONSICOLA', 999999999, 9999999999999, 'local', nowMs(), nowMs()]);
+        }
+
+    } catch (Exception $e) {
+        /* Không chặn — để router tự xử lý và báo lỗi */
     }
 }
 
@@ -76,14 +158,29 @@ function ensureColumns() {
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $in = input();
 
+/* Tự tạo bảng trước khi xử lý — trừ ping */
+if ($action !== 'ping') ensureSchema();
+
 try {
 
 switch ($action) {
 
     /* ---------- PING ---------- */
-    case 'ping':
-        out(['success' => true, 'message' => 'API đang chạy', 'time' => nowMs()]);
-        break;
+    case 'ping': {
+        try {
+            db()->query('SELECT 1');
+            $tables = db()->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+            out([
+                'success' => true,
+                'message' => 'API đang chạy',
+                'time'    => nowMs(),
+                'db'      => 'OK',
+                'tables'  => $tables
+            ]);
+        } catch (Exception $e) {
+            out(['success' => false, 'error' => 'DB: ' . $e->getMessage()], 500);
+        }
+    }
 
     /* ---------- CONFIG ---------- */
     case 'config_get': {
@@ -124,7 +221,6 @@ switch ($action) {
     }
 
     case 'login': {
-        ensureColumns();
         $em = strtolower(trim($in['email'] ?? ''));
         $pw = $in['password'] ?? '';
         if (!$em || !$pw) out(['error' => 'Vui lòng nhập đầy đủ!']);
@@ -150,7 +246,6 @@ switch ($action) {
     }
 
     case 'get_user': {
-        ensureColumns();
         $u = auth();
         unset($u['password']);
         out(['success' => true, 'user' => $u]);
@@ -158,7 +253,6 @@ switch ($action) {
 
     /* ---------- DEPOSIT ---------- */
     case 'deposit_create': {
-        ensureColumns();
         $u = auth();
         $amount = intval($in['amount'] ?? 0);
         $note = trim($in['note'] ?? '');
@@ -213,7 +307,6 @@ switch ($action) {
 
     /* ---------- USERS (ADMIN) ---------- */
     case 'user_list': {
-        ensureColumns();
         adminOnly();
         $s = db()->query('SELECT id, email, name, balance, key_expiry, is_admin, ip, last_login, created_at FROM users ORDER BY is_admin DESC, last_login DESC');
         out(['success' => true, 'users' => $s->fetchAll()]);
@@ -253,7 +346,6 @@ switch ($action) {
 
     /* ---------- KEYS ---------- */
     case 'key_create': {
-        ensureColumns();
         adminOnly();
         $days = max(1, intval($in['days'] ?? 1));
         $qty  = min(100, max(1, intval($in['qty'] ?? 1)));
@@ -295,7 +387,6 @@ switch ($action) {
     }
 
     case 'key_list': {
-        ensureColumns();
         adminOnly();
         $s = db()->query('SELECT * FROM `keys` ORDER BY created_at DESC LIMIT 200');
         out(['success' => true, 'keys' => $s->fetchAll()]);
@@ -341,7 +432,6 @@ switch ($action) {
 
     /* ---------- UPDATE LAST API ---------- */
     case 'update_last_api': {
-        ensureColumns();
         $u = auth();
         db()->prepare('UPDATE users SET last_api=?, last_tool=?, last_tool_at=? WHERE email=?')
             ->execute([$in['api'] ?? '', $in['tool'] ?? '', nowMs(), $u['email']]);
