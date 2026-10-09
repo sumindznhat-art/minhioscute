@@ -2,7 +2,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'keckyxbd_bonsicola');
 define('DB_USER', 'keckyxbd_admin');
-define('DB_PASS', 'Leminh123');
+define('DB_PASS', 'Leminh@123456');
 
 define('ADMIN_EMAIL', 'leminhdz@gmail.com');
 define('ADMIN_PASS', 'admin123');
