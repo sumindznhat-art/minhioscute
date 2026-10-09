@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS `keys` (
   id INT AUTO_INCREMENT PRIMARY KEY,
   code VARCHAR(50) UNIQUE NOT NULL,
   days INT DEFAULT 1,
-  note VARCHAR(255),
   used TINYINT DEFAULT 0,
   used_by VARCHAR(150),
   created_at BIGINT DEFAULT 0,
@@ -27,7 +26,6 @@ CREATE TABLE deposits (
   id VARCHAR(50) PRIMARY KEY,
   email VARCHAR(150) NOT NULL,
   amount BIGINT DEFAULT 0,
-  method VARCHAR(50) DEFAULT 'bank',
   status VARCHAR(20) DEFAULT 'pending',
   note TEXT,
   ip VARCHAR(50),
@@ -52,4 +50,4 @@ CREATE TABLE IF NOT EXISTS config (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT IGNORE INTO users (email, password, name, balance, key_expiry, is_admin, ip, last_login, created_at)
-VALUES ('leminhdz@gmail.com', 'admin123', 'Admin', 999999999, 9999999999999, 1, 'local', UNIX_TIMESTAMP()*1000, UNIX_TIMESTAMP()*1000);
+VALUES ('leminhdz@gmail.com', 'admin123', 'Admin BONSICOLA', 999999999, 9999999999999, 1, 'local', UNIX_TIMESTAMP()*1000, UNIX_TIMESTAMP()*1000);
