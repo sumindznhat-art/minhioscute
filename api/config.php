@@ -1,7 +1,7 @@
 <?php
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'keckyxbd_bonsicola');
-define('DB_USER', 'keckyxbd_admin');
+define('DB_NAME', 'keclyxbd_bonsicola');
+define('DB_USER', 'keclyxbd_admin');
 define('DB_PASS', 'Leminh@123456');
 
 define('ADMIN_EMAIL', 'leminhdz@gmail.com');
