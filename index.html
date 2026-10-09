@@ -2,25 +2,23 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title> Minh Tool </title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>TOOL TÀI XỈU BONIOS</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
+<!-- ===== LOGIN ===== -->
 <div id="login-screen">
   <div class="login-box">
-    <h1 class="login-title">LE HOANG MINH</h1>
-    <p class="login-sub"><i class="fa-solid fa-lock"></i> Nhập Key</p>
+    <h1 class="login-title" id="loginTitle">TOOL TÀI XỈU BONIOS</h1>
+    <p class="login-sub"><i class="fa-solid fa-shield-halved"></i> <span id="loginSub">Hệ Thống AI Phân Tích Dữ Liệu</span></p>
 
     <div class="login-avatar" id="avatarTrigger">
       <div class="login-avatar-ring"></div>
-      <img id="loginAvatarImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%23e0f2fe'/><stop offset='100%25' stop-color='%23bae6fd'/></linearGradient></defs><rect fill='url(%23g)' width='200' height='200'/><text x='50%25' y='56%25' font-family='Segoe UI' font-size='100' text-anchor='middle' dominant-baseline='middle'>🎀</text></svg>" alt="Avatar" draggable="false">
+      <img id="loginAvatarImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect fill='%23e0f2fe' width='200' height='200'/><text x='50%25' y='56%25' font-size='90' text-anchor='middle' dominant-baseline='middle'>🎀</text></svg>" alt="Avatar">
       <div class="login-online-dot"></div>
     </div>
 
@@ -33,102 +31,68 @@
       <span id="btnText"><i class="fa-solid fa-right-to-bracket"></i> ĐĂNG NHẬP</span>
     </button>
     <div class="login-error" id="loginError"></div>
-    <p class="login-footer">©TOOL•<span>MinhLe</span></p>
+    <p class="login-footer">©<span id="loginFooter">TOOL•BONIOS</span></p>
   </div>
 </div>
 
-<!-- ============ TOOL SELECT ============ -->
+<!-- ===== TOOL SELECT ===== -->
 <div id="tool-select">
-  <div class="ts-box">
-    <div class="ts-title"> Chọn Tool</div>
-    <div class="ts-sub">Chọn loại tool bạn muốn mở</div>
+  <div class="ts-header">
+    <div class="ts-title" id="tsTitle">🎯 Chọn Tool</div>
+    <div class="ts-sub" id="tsSub">Chọn tool AI bạn muốn mở</div>
+    <div class="ts-tabs" id="tsTabs"></div>
+  </div>
+  <div class="ts-scroll">
+    <div class="ts-grid" id="tsGrid"></div>
+  </div>
+  <button class="ts-logout" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> ĐĂNG XUẤT</button>
+</div>
 
-    <div class="ts-grid">
-      <div class="ts-item md5" onclick="openTool('md5')">
-        <div class="ts-icon"><i class="fa-solid fa-dice"></i></div>
-        <div class="ts-name">MD5</div>
-        <div class="ts-desc">Tài Xỉu MD5</div>
+<!-- ===== TOOL SCREEN ===== -->
+<div id="tool-screen">
+  <iframe id="gameFrame" src="about:blank" class="game-frame" allow="autoplay;fullscreen"></iframe>
+  <button class="ts-back" onclick="backToSelect()"><i class="fa-solid fa-arrow-left"></i></button>
+  <div class="ts-badge" id="tsBadge">TOOL</div>
+
+  <div class="drag-group" id="dragPanel">
+    <div class="predict-card" id="predictCard">
+      <div class="card-header">
+        <span class="card-title" id="cardTitle">AI PANEL</span>
+        <button class="toggle-btn" onclick="togglePanel()">−</button>
       </div>
-      <div class="ts-item hu" onclick="openTool('hu')">
-        <div class="ts-icon"><i class="fa-solid fa-coins"></i></div>
-        <div class="ts-name">HŨ</div>
-        <div class="ts-desc">Tài Xỉu Hũ</div>
+      <div class="card-body" id="cardBody">
+        <span class="sid-value" id="sidValue">#@hk</span>
+        <div class="tx-row">
+          <div class="tx-circle tai" id="taiCircle">--%</div>
+          <div class="tx-circle xiu" id="xiuCircle">--%</div>
+        </div>
+        <div class="conf-box" id="confBox"><span class="conf-level">--</span><span class="conf-num">0%</span></div>
+        <div class="conf-bar"><div class="conf-bar-fill" id="confBar"></div></div>
+        <div class="status-text" id="statusText">Đang kết nối...</div>
       </div>
     </div>
-
-    <button class="ts-logout" onclick="doLogout()">
-      <i class="fa-solid fa-right-from-bracket"></i> ĐĂNG XUẤT
-    </button>
   </div>
 </div>
 
-<!-- ============ AVATAR MODAL ============ -->
-<div id="avatar-modal" onclick="if(event.target===this) closeAvatarModal()">
+<!-- ===== AVATAR MODAL ===== -->
+<div id="avatar-modal" onclick="if(event.target===this)closeAvatarModal()">
   <div class="av-modal-box">
     <div class="av-modal-title">🎀 Đổi Avatar</div>
-    <div class="av-modal-sub">Dán chuỗi Base64 ảnh của bạn vào bên dưới</div>
-    <div class="av-preview">
-      <div class="av-preview-circle" id="avPreview">🎀</div>
-    </div>
-    <div class="av-textarea-wrap">
-      <textarea id="avBase64Input" placeholder="Dán chuỗi Base64 ảnh vào đây...
-Ví dụ: /9j/4AAQSkZJRg... hoặc data:image/jpeg;base64,/9j/..."></textarea>
-    </div>
+    <div class="av-modal-sub">Dán chuỗi Base64 ảnh</div>
+    <div class="av-preview"><div class="av-preview-circle" id="avPreview">🎀</div></div>
+    <textarea id="avBase64Input" placeholder="Dán Base64 hoặc URL ảnh..."></textarea>
     <div class="av-actions">
       <button class="av-btn-act av-btn-save" onclick="saveAvatar()"><i class="fa-solid fa-floppy-disk"></i> LƯU</button>
       <button class="av-btn-act av-btn-reset" onclick="resetAvatar()"><i class="fa-solid fa-rotate-left"></i> MẶC ĐỊNH</button>
     </div>
-    <div class="av-modal-hint">💡 Chuỗi Base64 có thể bắt đầu bằng <b>data:image/...</b> hoặc chỉ chuỗi thô</div>
     <div class="av-status" id="avStatus"></div>
-    <button class="av-modal-close" onclick="closeAvatarModal()"><i class="fa-solid fa-xmark"></i> ĐÓNG</button>
+    <button class="av-modal-close" onclick="closeAvatarModal()">ĐÓNG</button>
   </div>
 </div>
 
-<!-- ============ TOOL SCREEN ============ -->
-<div id="tool-screen">
-  <iframe id="gameFrame" src="about:blank" class="game-frame"></iframe>
-  <button class="ts-back" onclick="backToSelect()"><i class="fa-solid fa-arrow-left"></i></button>
-  <div class="ts-badge md5" id="tsBadge">MD5</div>
-
-  <div id="app-content">
-    <!-- PANEL MD5 -->
-    <div class="drag-group" id="drag-md5" style="top:78px;left:18px;display:none">
-      <div class="predict-card" id="predict-card-md5">
-        <div class="card-header"><span class="card-title">MD5</span><button class="toggle-btn" data-target="predict-card-md5">−</button></div>
-        <div class="card-body">
-          <span class="sid-value" id="sid-md5">#@hk</span>
-          <div class="tx-row">
-            <div class="tx-circle tai" id="tai-md5">--%</div>
-            <div class="tx-circle xiu" id="xiu-md5">--%</div>
-          </div>
-          <div class="conf-box" id="conf-md5"><span class="conf-level">--</span><span class="conf-num">0%</span></div>
-          <div class="conf-bar"><div class="conf-bar-fill" id="conf-bar-md5"></div></div>
-          <div class="status-text" id="status-md5">Đang tải...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PANEL HŨ -->
-    <div class="drag-group" id="drag-hu" style="top:78px;right:18px;display:none">
-      <div class="predict-card" id="predict-card-hu">
-        <div class="card-header"><span class="card-title">HŨ</span><button class="toggle-btn" data-target="predict-card-hu">−</button></div>
-        <div class="card-body">
-          <span class="sid-value" id="sid-hu">#@hk</span>
-          <div class="tx-row">
-            <div class="tx-circle tai" id="tai-hu">--%</div>
-            <div class="tx-circle xiu" id="xiu-hu">--%</div>
-          </div>
-          <div class="conf-box" id="conf-hu"><span class="conf-level">--</span><span class="conf-num">0%</span></div>
-          <div class="conf-bar"><div class="conf-bar-fill" id="conf-bar-hu"></div></div>
-          <div class="status-text" id="status-hu">Đang tải...</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="js/engine.js"></script>
-<script src="js/tools.js"></script>
-<script src="js/app.js"></script>
+<script src="./js/config.js"></script>
+<script src="./js/engine.js"></script>
+<script src="./js/tools.js"></script>
+<script src="./js/app.js"></script>
 </body>
 </html>
