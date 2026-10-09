@@ -3,8 +3,9 @@ require_once __DIR__ . '/config.php';
 
 function input() {
     $raw = file_get_contents('php://input');
-    $j = json_decode($raw, true);
-    return is_array($j) ? $j : array_merge($_GET, $_POST);
+    $json = json_decode($raw, true);
+    if (is_array($json)) return $json;
+    return array_merge($_GET, $_POST);
 }
 function nowMs() { return round(microtime(true) * 1000); }
 function getIP() {
@@ -30,7 +31,8 @@ function adminOnly() {
 function genKey() {
     $C = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     $g = function() use ($C) {
-        $s = ''; for ($i = 0; $i < 4; $i++) $s .= $C[random_int(0, strlen($C) - 1)];
+        $s = '';
+        for ($i = 0; $i < 4; $i++) $s .= $C[random_int(0, strlen($C) - 1)];
         return $s;
     };
     return $g() . '-' . $g() . '-' . $g();
@@ -45,57 +47,61 @@ switch ($action) {
         out(['success' => true, 'message' => 'API đang chạy', 'time' => nowMs()]);
         break;
 
-    case 'config_get':
+    case 'config_get': {
         try {
             $s = db()->prepare('SELECT v FROM config WHERE k = ?');
             $s->execute(['main']);
             $row = $s->fetch();
             out(['success' => true, 'config' => $row ? json_decode($row['v'], true) : null]);
         } catch (Exception $e) { out(['success' => true, 'config' => null]); }
+    }
 
-    case 'config_save':
+    case 'config_save': {
         adminOnly();
         $cfg = $in['config'] ?? null;
-        if (!$cfg) out(['error' => 'Config không hợp lệ']);
+        if (!$cfg || !is_array($cfg)) out(['error' => 'Config không hợp lệ']);
         $json = json_encode($cfg, JSON_UNESCAPED_UNICODE);
-        db()->prepare('INSERT INTO config (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = ?')->execute(['main', $json, $json]);
+        db()->prepare('INSERT INTO config (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = ?')
+            ->execute(['main', $json, $json]);
         out(['success' => true]);
+    }
 
     case 'register': {
         $em = strtolower(trim($in['email'] ?? ''));
         $pw = $in['password'] ?? '';
         $nm = trim($in['name'] ?? '') ?: explode('@', $em)[0];
-        if (!$em || !$pw) out(['error' => 'Nhập đầy đủ!']);
-        if (!filter_var($em, FILTER_VALIDATE_EMAIL)) out(['error' => 'Email sai!']);
-        if (strlen($pw) < 6) out(['error' => 'Pass từ 6 ký tự!']);
+        if (!$em || !$pw) out(['error' => 'Vui lòng nhập đầy đủ!']);
+        if (!filter_var($em, FILTER_VALIDATE_EMAIL)) out(['error' => 'Email không hợp lệ!']);
+        if (strlen($pw) < 6) out(['error' => 'Mật khẩu từ 6 ký tự!']);
         $s = db()->prepare('SELECT id FROM users WHERE email = ?');
         $s->execute([$em]);
         if ($s->fetch()) out(['error' => 'Email đã đăng ký!']);
         db()->prepare('INSERT INTO users (email, password, name, balance, key_expiry, is_admin, ip, last_login, created_at) VALUES (?, ?, ?, 0, 0, 0, ?, ?, ?)')
             ->execute([$em, $pw, $nm, getIP(), nowMs(), nowMs()]);
-        out(['success' => true]);
+        out(['success' => true, 'message' => 'Đăng ký thành công']);
     }
 
     case 'login': {
         $em = strtolower(trim($in['email'] ?? ''));
         $pw = $in['password'] ?? '';
-        if (!$em || !$pw) out(['error' => 'Nhập đầy đủ!']);
+        if (!$em || !$pw) out(['error' => 'Vui lòng nhập đầy đủ!']);
         $s = db()->prepare('SELECT * FROM users WHERE email = ?');
         $s->execute([$em]);
         $u = $s->fetch();
         if (!$u && $em === strtolower(ADMIN_EMAIL) && $pw === ADMIN_PASS) {
             db()->prepare('INSERT INTO users (email, password, name, balance, key_expiry, is_admin, ip, last_login, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)')
-                ->execute([ADMIN_EMAIL, ADMIN_PASS, 'Admin', 999999999, 9999999999999, getIP(), nowMs(), nowMs()]);
+                ->execute([ADMIN_EMAIL, ADMIN_PASS, 'Admin BONSICOLA', 999999999, 9999999999999, getIP(), nowMs(), nowMs()]);
             $s->execute([$em]);
             $u = $s->fetch();
         }
-        if (!$u || $u['password'] !== $pw) out(['error' => 'Sai tài khoản!']);
+        if (!$u || $u['password'] !== $pw) out(['error' => 'Sai email hoặc mật khẩu!']);
         if ($em === strtolower(ADMIN_EMAIL)) {
             db()->prepare('UPDATE users SET is_admin = 1 WHERE email = ?')->execute([$em]);
             $u['is_admin'] = 1;
         }
         db()->prepare('UPDATE users SET ip = ?, last_login = ? WHERE email = ?')->execute([getIP(), nowMs(), $em]);
-        $u['ip'] = getIP(); $u['last_login'] = nowMs();
+        $u['ip'] = getIP();
+        $u['last_login'] = nowMs();
         unset($u['password']);
         out(['success' => true, 'user' => $u]);
     }
@@ -110,7 +116,7 @@ switch ($action) {
         $u = auth();
         $amount = intval($in['amount'] ?? 0);
         $note = trim($in['note'] ?? '');
-        if ($amount < 10000) out(['error' => 'Tối thiểu 10,000đ']);
+        if ($amount < 10000) out(['error' => 'Tối thiểu 10,000đ!']);
         $id = 'dep_' . nowMs() . '_' . bin2hex(random_bytes(3));
         db()->prepare('INSERT INTO deposits (id, email, amount, method, status, note, ip, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
             ->execute([$id, $u['email'], $amount, 'bank', 'pending', $note, getIP(), nowMs()]);
@@ -157,7 +163,7 @@ switch ($action) {
 
     case 'user_list': {
         adminOnly();
-        $s = db()->query('SELECT id, email, name, balance, key_expiry, is_admin, ip, last_login, created_at FROM users ORDER BY is_admin DESC, created_at DESC');
+        $s = db()->query('SELECT id, email, name, balance, key_expiry, is_admin, ip, last_login, created_at FROM users ORDER BY is_admin DESC, last_login DESC');
         out(['success' => true, 'users' => $s->fetchAll()]);
     }
 
@@ -200,7 +206,8 @@ switch ($action) {
         $created = [];
         for ($i = 0; $i < $qty; $i++) {
             $code = genKey();
-            db()->prepare('INSERT INTO `keys` (code, days, note, created_at) VALUES (?, ?, ?, ?)')->execute([$code, $days, $in['note'] ?? '', nowMs()]);
+            db()->prepare('INSERT INTO `keys` (code, days, note, created_at) VALUES (?, ?, ?, ?)')
+                ->execute([$code, $days, $in['note'] ?? '', nowMs()]);
             $created[] = $code;
         }
         out(['success' => true, 'keys' => $created]);
