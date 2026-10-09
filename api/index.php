@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/config.php';
 
+/* ============================================================
+   HELPERS
+   ============================================================ */
 function input() {
     $raw = file_get_contents('php://input');
     $json = json_decode($raw, true);
@@ -38,22 +41,60 @@ function genKey() {
     return $g() . '-' . $g() . '-' . $g();
 }
 
+/* ============================================================
+   AUTO-MIGRATE: tự vá cột thiếu (chống server rỗng)
+   ============================================================ */
+function ensureColumns() {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+
+    $checks = [
+        ['users',    'last_api',     "ALTER TABLE users ADD COLUMN last_api VARCHAR(500) DEFAULT ''"],
+        ['users',    'last_tool',    "ALTER TABLE users ADD COLUMN last_tool VARCHAR(150) DEFAULT ''"],
+        ['users',    'last_tool_at', "ALTER TABLE users ADD COLUMN last_tool_at BIGINT DEFAULT 0"],
+        ['keys',     'note',         "ALTER TABLE `keys` ADD COLUMN note VARCHAR(255) DEFAULT ''"],
+        ['deposits', 'method',       "ALTER TABLE deposits ADD COLUMN method VARCHAR(30) DEFAULT 'bank'"],
+    ];
+
+    foreach ($checks as $c) {
+        try {
+            $s = db()->prepare("SHOW COLUMNS FROM `{$c[0]}` LIKE ?");
+            $s->execute([$c[1]]);
+            if (!$s->fetch()) {
+                db()->exec($c[2]);
+            }
+        } catch (Exception $e) {
+            /* bỏ qua — cột đã có hoặc bảng chưa tạo */
+        }
+    }
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $in = input();
 
+try {
+
 switch ($action) {
 
+    /* ---------- PING ---------- */
     case 'ping':
         out(['success' => true, 'message' => 'API đang chạy', 'time' => nowMs()]);
         break;
 
+    /* ---------- CONFIG ---------- */
     case 'config_get': {
         try {
             $s = db()->prepare('SELECT v FROM config WHERE k = ?');
             $s->execute(['main']);
             $row = $s->fetch();
             out(['success' => true, 'config' => $row ? json_decode($row['v'], true) : null]);
-        } catch (Exception $e) { out(['success' => true, 'config' => null]); }
+        } catch (Exception $e) {
+            out(['success' => true, 'config' => null]);
+        }
     }
 
     case 'config_save': {
@@ -66,6 +107,7 @@ switch ($action) {
         out(['success' => true]);
     }
 
+    /* ---------- AUTH ---------- */
     case 'register': {
         $em = strtolower(trim($in['email'] ?? ''));
         $pw = $in['password'] ?? '';
@@ -82,6 +124,7 @@ switch ($action) {
     }
 
     case 'login': {
+        ensureColumns();
         $em = strtolower(trim($in['email'] ?? ''));
         $pw = $in['password'] ?? '';
         if (!$em || !$pw) out(['error' => 'Vui lòng nhập đầy đủ!']);
@@ -107,12 +150,15 @@ switch ($action) {
     }
 
     case 'get_user': {
+        ensureColumns();
         $u = auth();
         unset($u['password']);
         out(['success' => true, 'user' => $u]);
     }
 
+    /* ---------- DEPOSIT ---------- */
     case 'deposit_create': {
+        ensureColumns();
         $u = auth();
         $amount = intval($in['amount'] ?? 0);
         $note = trim($in['note'] ?? '');
@@ -150,18 +196,24 @@ switch ($action) {
             $pdo->prepare('UPDATE deposits SET status=?, approved_at=? WHERE id=?')->execute(['approved', nowMs(), $id]);
             $pdo->commit();
             out(['success' => true, 'new_balance' => $newBal]);
-        } catch (Exception $e) { $pdo->rollBack(); out(['error' => $e->getMessage()], 500); }
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            out(['error' => $e->getMessage()], 500);
+        }
     }
 
     case 'deposit_reject': {
         adminOnly();
         $id = $in['id'] ?? '';
         $reason = $in['reason'] ?? 'Không hợp lệ';
-        db()->prepare('UPDATE deposits SET status=?, rejected_at=?, note=? WHERE id=?')->execute(['rejected', nowMs(), $reason, $id]);
+        db()->prepare('UPDATE deposits SET status=?, rejected_at=?, note=? WHERE id=?')
+            ->execute(['rejected', nowMs(), $reason, $id]);
         out(['success' => true]);
     }
 
+    /* ---------- USERS (ADMIN) ---------- */
     case 'user_list': {
+        ensureColumns();
         adminOnly();
         $s = db()->query('SELECT id, email, name, balance, key_expiry, is_admin, ip, last_login, created_at FROM users ORDER BY is_admin DESC, last_login DESC');
         out(['success' => true, 'users' => $s->fetchAll()]);
@@ -199,15 +251,18 @@ switch ($action) {
         out(['success' => true]);
     }
 
+    /* ---------- KEYS ---------- */
     case 'key_create': {
+        ensureColumns();
         adminOnly();
         $days = max(1, intval($in['days'] ?? 1));
-        $qty = min(100, max(1, intval($in['qty'] ?? 1)));
+        $qty  = min(100, max(1, intval($in['qty'] ?? 1)));
+        $note = trim($in['note'] ?? '');
         $created = [];
         for ($i = 0; $i < $qty; $i++) {
             $code = genKey();
             db()->prepare('INSERT INTO `keys` (code, days, note, created_at) VALUES (?, ?, ?, ?)')
-                ->execute([$code, $days, $in['note'] ?? '', nowMs()]);
+                ->execute([$code, $days, $note, nowMs()]);
             $created[] = $code;
         }
         out(['success' => true, 'keys' => $created]);
@@ -226,14 +281,21 @@ switch ($action) {
         $newExp = $base + ($k['days'] * 24 * 3600 * 1000);
         $pdo = db();
         $pdo->beginTransaction();
-        $pdo->prepare('UPDATE users SET key_expiry = ? WHERE email = ?')->execute([$newExp, $u['email']]);
-        $pdo->prepare('UPDATE `keys` SET used=1, used_by=?, used_at=? WHERE code=?')->execute([$u['email'], nowMs(), $code]);
-        $pdo->prepare('INSERT INTO history (email, type, amount, balance, note, at) VALUES (?, ?, 0, ?, ?, ?)')->execute([$u['email'], 'key', $u['balance'], 'Key +' . $k['days'] . 'd', nowMs()]);
-        $pdo->commit();
-        out(['success' => true, 'days' => $k['days'], 'new_expiry' => $newExp]);
+        try {
+            $pdo->prepare('UPDATE users SET key_expiry = ? WHERE email = ?')->execute([$newExp, $u['email']]);
+            $pdo->prepare('UPDATE `keys` SET used=1, used_by=?, used_at=? WHERE code=?')->execute([$u['email'], nowMs(), $code]);
+            $pdo->prepare('INSERT INTO history (email, type, amount, balance, note, at) VALUES (?, ?, 0, ?, ?, ?)')
+                ->execute([$u['email'], 'key', $u['balance'], 'Key +' . $k['days'] . 'd', nowMs()]);
+            $pdo->commit();
+            out(['success' => true, 'days' => $k['days'], 'new_expiry' => $newExp]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            out(['error' => $e->getMessage()], 500);
+        }
     }
 
     case 'key_list': {
+        ensureColumns();
         adminOnly();
         $s = db()->query('SELECT * FROM `keys` ORDER BY created_at DESC LIMIT 200');
         out(['success' => true, 'keys' => $s->fetchAll()]);
@@ -245,6 +307,7 @@ switch ($action) {
         out(['success' => true]);
     }
 
+    /* ---------- HISTORY ---------- */
     case 'history': {
         $u = auth();
         $s = db()->prepare('SELECT * FROM history WHERE email = ? ORDER BY at DESC LIMIT 100');
@@ -252,6 +315,7 @@ switch ($action) {
         out(['success' => true, 'history' => $s->fetchAll()]);
     }
 
+    /* ---------- BUY PACKAGE ---------- */
     case 'buy_package': {
         $u = auth();
         $days = intval($in['days'] ?? 0);
@@ -263,19 +327,36 @@ switch ($action) {
         $newBal = $u['balance'] - $price;
         $pdo = db();
         $pdo->beginTransaction();
-        $pdo->prepare('UPDATE users SET balance=?, key_expiry=? WHERE email=?')->execute([$newBal, $newExp, $u['email']]);
-        $pdo->prepare('INSERT INTO history (email, type, amount, balance, note, at) VALUES (?, ?, ?, ?, ?, ?)')->execute([$u['email'], 'buy', -$price, $newBal, 'Mua VIP ' . $days . 'd', nowMs()]);
-        $pdo->commit();
-        out(['success' => true, 'new_balance' => $newBal]);
+        try {
+            $pdo->prepare('UPDATE users SET balance=?, key_expiry=? WHERE email=?')->execute([$newBal, $newExp, $u['email']]);
+            $pdo->prepare('INSERT INTO history (email, type, amount, balance, note, at) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$u['email'], 'buy', -$price, $newBal, 'Mua VIP ' . $days . 'd', nowMs()]);
+            $pdo->commit();
+            out(['success' => true, 'new_balance' => $newBal]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            out(['error' => $e->getMessage()], 500);
+        }
     }
 
+    /* ---------- UPDATE LAST API ---------- */
     case 'update_last_api': {
+        ensureColumns();
         $u = auth();
-        db()->prepare('UPDATE users SET last_api=?, last_tool=?, last_tool_at=? WHERE email=?')->execute([$in['api'] ?? '', $in['tool'] ?? '', nowMs(), $u['email']]);
+        db()->prepare('UPDATE users SET last_api=?, last_tool=?, last_tool_at=? WHERE email=?')
+            ->execute([$in['api'] ?? '', $in['tool'] ?? '', nowMs(), $u['email']]);
         out(['success' => true]);
     }
 
+    /* ---------- DEFAULT ---------- */
     default:
         out(['error' => 'Action không hợp lệ', 'received' => $action], 400);
 }
-?>
+
+} catch (PDOException $e) {
+    out(['error' => 'DB: ' . $e->getMessage(), 'code' => $e->getCode()], 500);
+} catch (Exception $e) {
+    out(['error' => $e->getMessage()], 500);
+} catch (Throwable $e) {
+    out(['error' => 'Server: ' . $e->getMessage()], 500);
+}
