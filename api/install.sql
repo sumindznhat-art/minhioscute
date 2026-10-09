@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS users (
   is_admin TINYINT DEFAULT 0,
   ip VARCHAR(50),
   last_login BIGINT DEFAULT 0,
-  created_at BIGINT DEFAULT 0
+  created_at BIGINT DEFAULT 0,
+  last_api VARCHAR(500) DEFAULT '',
+  last_tool VARCHAR(150) DEFAULT '',
+  last_tool_at BIGINT DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `keys` (
@@ -17,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `keys` (
   days INT DEFAULT 1,
   used TINYINT DEFAULT 0,
   used_by VARCHAR(150),
+  note VARCHAR(255) DEFAULT '',
   created_at BIGINT DEFAULT 0,
   used_at BIGINT DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -25,6 +29,7 @@ CREATE TABLE IF NOT EXISTS deposits (
   id VARCHAR(50) PRIMARY KEY,
   email VARCHAR(150) NOT NULL,
   amount BIGINT DEFAULT 0,
+  method VARCHAR(30) DEFAULT 'bank',
   status VARCHAR(20) DEFAULT 'pending',
   note TEXT,
   ip VARCHAR(50),
