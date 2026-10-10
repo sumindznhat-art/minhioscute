@@ -1,54 +1,469 @@
-const TEEngine=(()=>{
-const grp=s=>{if(!s.length)return[];const o=[];let d=s[0],c=1;for(let i=1;i<s.length;i++){if(s[i]===d)c++;else{o.push({k:d,n:c});d=s[i];c=1;}}o.push({k:d,n:c});return o;};
-class Yq{
-constructor(){this.ch=[];this.td=[];this.xx=[];this.max=500;this.ng={1:6,2:8,3:10,4:14,5:18,6:22};}
-dice(it){const m=[['dice1','dice2','dice3'],['xucxac1','xucxac2','xucxac3'],['d1','d2','d3'],['x1','x2','x3']];
-for(const[a,b,c]of m){if(it[a]!=null&&it[b]!=null&&it[c]!=null){const ar=[+it[a],+it[b],+it[c]];if(ar.every(n=>n>=1&&n<=6))return ar;}}
-for(const f of['dice','dices','xucxac']){if(Array.isArray(it[f])&&it[f].length>=3){const ar=it[f].slice(0,3).map(Number);if(ar.every(n=>n>=1&&n<=6))return ar;}}return null;}
-nap(items){this.ch=[];this.td=[];this.xx=[];
-for(const it of items){const r=it.resultTruyenThong||it.result||it.ketQua;if(r!=='TAI'&&r!=='XIU')continue;
-this.ch.push(r);const d=this.dice(it);this.xx.push(d);this.td.push(d?d[0]+d[1]+d[2]:null);}
-if(this.ch.length>this.max){const c=-this.max;this.ch=this.ch.slice(c);this.td=this.td.slice(c);this.xx=this.xx.slice(c);}}
-ngM(k){return this.ng[k]||22;}
-fg(fp,hc=null){const c=this.ch,k=fp.length;if(!k)return{t:0,x:0,s:0,v:[]};
-const tot=fp.reduce((a,b)=>a+b,0);let t=0,x=0;const v=[];
-for(let st=0;st<c.length-tot;st++){let p=st,ok=true,ht=null,hc2=null;
-for(const dd of fp){if(p+dd>c.length){ok=false;break;}const seg=c.slice(p,p+dd);if(new Set(seg).size!==1){ok=false;break;}
-const h=seg[0];if(ht!==null&&h===ht){ok=false;break;}ht=h;hc2=h;p+=dd;}
-if(!ok)continue;if(hc!==null&&hc2!==hc)continue;if(st>0&&c[st-1]===c[st])continue;if(p>=c.length)continue;
-if(c[p]==='TAI')t++;else x++;v.push(p);}
-return{t,x,s:t+x,v};}
-pattern(){const g=this.ch.slice(-24);if(g.length<3)return null;const nh=grp(g);if(!nh.length)return null;
-const h=nh[nh.length-1].k,dn=nh[nh.length-1].n;const kM=Math.min(6,nh.length);
-for(let k=kM;k>=1;k--){const fp=nh.slice(-k).map(n=>n.n);const{s}=this.fg(fp,h);if(s>=this.ngM(k))return{fp,h,k};}
-return{fp:[dn],h,k:1};}
-hist(p){if(!p)return{t:null,x:null,s:0,v:[]};const{t,x,s,v}=this.fg(p.fp,p.h);if(s<this.ngM(p.fp.length))return{t:null,x:null,s,v};return{t:t/s*100,x:x/s*100,s,v};}
-fBet(){const c=this.ch;if(c.length<2)return 0;let b=1;for(let i=c.length-1;i>0;i--){if(c[i]===c[i-1])b++;else break;}return b;}
-fAlt(){const c=this.ch;if(c.length<6)return null;let d=0;for(let i=c.length-1;i>c.length-6&&i>0;i--){if(c[i]!==c[i-1])d++;else break;}if(d>=4)return{d,g:c[c.length-1]==='TAI'?'XIU':'TAI'};return null;}
-fVol(){const c=this.ch;if(c.length<15)return null;const g=c.slice(-25);let d=0;for(let i=1;i<g.length;i++)if(g[i]!==g[i-1])d++;const r=d/(g.length-1);return{r,cao:r>.65,thap:r<.35};}
-fM1(){const c=this.ch;if(c.length<20)return null;let tt=0,tx=0,xt=0,xx=0;const w=c.slice(-80);
-for(let i=1;i<w.length;i++){const p=w[i-1],n=w[i];if(p==='TAI'&&n==='TAI')tt++;else if(p==='TAI'&&n==='XIU')tx++;else if(p==='XIU'&&n==='TAI')xt++;else xx++;}
-const last=c[c.length-1];const pt=last==='TAI'?(tt+1)/(tt+tx+2):(xt+1)/(xt+xx+2);return{pt,px:1-pt,last};}
-fMom(){const c=this.ch;if(c.length<15)return null;let t=0,x=0;const g=c.slice(-15);
-for(let i=0;i<g.length;i++){const w=Math.exp(-(g.length-1-i)/5);if(g[i]==='TAI')t+=w;else x+=w;}
-return{h:t>x?'TAI':'XIU',m:Math.abs(t-x)/(t+x)};}
-fKNN(){const c=this.ch,W=5;if(c.length<W+10)return null;const cur=c.slice(-W);const res=[];
-for(let i=0;i<c.length-W;i++){let k=0;for(let j=0;j<W;j++)if(c[i+j]===cur[j])k++;if(k>=W-1&&i+W<c.length)res.push({d:k,k:c[i+W]});}
-if(res.length<3)return null;res.sort((a,b)=>b.d-a.d);const top=res.slice(0,10);let t=0,x=0;for(const r of top)if(r.k==='TAI')t++;else x++;return{t,x,s:top.length,r:t/top.length*100};}
-scan(){const p=this.pattern();const h=this.hist(p);let rt=h.t;
-if(rt===null&&this.ch.length>=5)rt=this.ch.filter(x=>x==='TAI').length/this.ch.length*100;
-if(rt===null)return{gy:null,rt:50,rx:50,tin:{},n:0};
-const tin={fBet:this.fBet(),fAlt:this.fAlt(),fVol:this.fVol(),fM1:this.fM1(),fMom:this.fMom(),fKNN:this.fKNN()};
-return{gy:rt>=50?'TAI':'XIU',rt,rx:100-rt,n:h.s||this.ch.length,tin};}
-}
-function predict(eng){const qs=eng.scan();if(!qs.gy)return{g:null,conf:0};
-let d=Math.min(1,Math.abs(qs.rt-50)/35);
-if(qs.tin.fBet>=3)d=Math.max(d,.6+qs.tin.fBet*.03);
-if(qs.tin.fAlt&&qs.tin.fAlt.d>=4)d=Math.max(d,.65);
-if(qs.tin.fVol&&qs.tin.fVol.cao)d=Math.max(d,.6);
-if(qs.tin.fMom&&qs.tin.fMom.m>.4)d=Math.max(d,.55+qs.tin.fMom.m*.3);
-if(qs.tin.fM1){const p=qs.gy==='TAI'?qs.tin.fM1.pt:qs.tin.fM1.px;d=Math.max(d,p);}
-if(qs.tin.fKNN){const p=qs.gy==='TAI'?qs.tin.fKNN.r:100-qs.tin.fKNN.r;d=Math.max(d,p/100);}
-return{g:qs.gy,conf:Math.min(95,Math.round(d*100)),rt:qs.rt,rx:qs.rx};}
-return{Yq,predict};})();
-window.TEEngine=TEEngine;
+/* ============================================================
+   ENGINE.JS   THUẬT TOÁN DỰ ĐOÁN TÀI XỈU
+   ============================================================ */
+
+const TEEngine = (() => {
+
+  /* Nhóm chuỗi liên tiếp */
+  const groupRuns = (arr) => {
+    if (!arr.length) return [];
+    const out = [];
+    let last = arr[0], count = 1;
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i] === last) count++;
+      else { out.push({ k: last, n: count }); last = arr[i]; count = 1; }
+    }
+    out.push({ k: last, n: count });
+    return out;
+  };
+
+  class TaiXiuEngine {
+    constructor() {
+      this.history = [];      // Chuỗi TAI/XIU
+      this.dice = [];         // Mảng [d1,d2,d3]
+      this.totals = [];       // Tổng 3 xúc xắc
+      this.max = 500;
+      // Ngưỡng tối thiểu mẫu cho mỗi pattern length
+      this.minSamples = { 1: 8, 2: 10, 3: 14, 4: 18, 5: 24, 6: 30, 7: 36, 8: 42 };
+    }
+
+    /* ====== Đọc dữ liệu từ API ====== */
+    parseDice(item) {
+      const maps = [
+        ['dice1','dice2','dice3'],
+        ['xucxac1','xucxac2','xucxac3'],
+        ['d1','d2','d3'],
+        ['x1','x2','x3']
+      ];
+      for (const [a,b,c] of maps) {
+        if (item[a] != null && item[b] != null && item[c] != null) {
+          const ar = [+item[a], +item[b], +item[c]];
+          if (ar.every(n => n >= 1 && n <= 6)) return ar;
+        }
+      }
+      for (const f of ['dice','dices','xucxac']) {
+        if (Array.isArray(item[f]) && item[f].length >= 3) {
+          const ar = item[f].slice(0,3).map(Number);
+          if (ar.every(n => n >= 1 && n <= 6)) return ar;
+        }
+      }
+      return null;
+    }
+
+    load(items) {
+      this.history = [];
+      this.dice = [];
+      this.totals = [];
+      for (const it of items) {
+        const r = it.resultTruyenThong || it.result || it.ketQua;
+        if (r !== 'TAI' && r !== 'XIU') continue;
+        this.history.push(r);
+        const d = this.parseDice(it);
+        this.dice.push(d);
+        this.totals.push(d ? d[0]+d[1]+d[2] : null);
+      }
+      if (this.history.length > this.max) {
+        const cut = -this.max;
+        this.history = this.history.slice(cut);
+        this.dice = this.dice.slice(cut);
+        this.totals = this.totals.slice(cut);
+      }
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 1: PATTERN MATCHING — Tìm chuỗi lặp lại
+       ============================================================ */
+    patternMatch() {
+      const c = this.history;
+      if (c.length < 5) return null;
+      
+      const last = c[c.length-1];
+      let best = null;
+      
+      // Thử độ dài pattern từ 6 xuống 1
+      for (let len = Math.min(8, Math.floor(c.length/2)); len >= 1; len--) {
+        const pattern = c.slice(-len);
+        let totalT = 0, totalX = 0, matches = 0;
+        
+        for (let i = 0; i <= c.length - len - 1; i++) {
+          let ok = true;
+          for (let j = 0; j < len; j++) {
+            if (c[i+j] !== pattern[j]) { ok = false; break; }
+          }
+          if (!ok) continue;
+          // Không được có TAI/XIU trước chuỗi giống (tránh trùng overlap)
+          if (i > 0 && c[i-1] === c[i]) continue;
+          matches++;
+          if (c[i+len] === 'TAI') totalT++;
+          else totalX++;
+        }
+        
+        const min = this.minSamples[len] || 15;
+        if (matches >= min) {
+          const conf = Math.max(totalT, totalX) / (totalT + totalX);
+          if (!best || conf > best.conf) {
+            best = {
+              len, matches,
+              tRatio: totalT / matches,
+              xRatio: totalX / matches,
+              conf,
+              suggest: totalT > totalX ? 'TAI' : 'XIU'
+            };
+          }
+        }
+      }
+      return best;
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 2: MARKOV CHAIN — Xác suất chuyển trạng thái
+       ============================================================ */
+    markovChain() {
+      const c = this.history;
+      if (c.length < 15) return null;
+
+      const buildChain = (order) => {
+        const trans = {};
+        for (let i = order; i < c.length; i++) {
+          const key = c.slice(i-order, i).join('');
+          if (!trans[key]) trans[key] = { T: 0, X: 0 };
+          if (c[i] === 'TAI') trans[key].T++;
+          else trans[key].X++;
+        }
+        return trans;
+      };
+
+      // Thử orders 1-4
+      for (let order = 4; order >= 1; order--) {
+        const trans = buildChain(order);
+        const curKey = c.slice(-order).join('');
+        const stats = trans[curKey];
+        if (!stats) continue;
+        const total = stats.T + stats.X;
+        if (total < 5) continue;
+        const pT = stats.T / total;
+        const conf = Math.abs(pT - 0.5) * 2;
+        if (conf > 0.2) {
+          return {
+            order, total,
+            pT: pT * 100,
+            pX: (1 - pT) * 100,
+            conf,
+            suggest: pT > 0.5 ? 'TAI' : 'XIU'
+          };
+        }
+      }
+      return null;
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 3: BAYESIAN INFERENCE — Suy luận Bayes
+       ============================================================ */
+    bayesian() {
+      const c = this.history;
+      if (c.length < 20) return null;
+
+      const last = c[c.length-1];
+      const opposite = last === 'TAI' ? 'XIU' : 'TAI';
+
+      // P(A|B) = P(B|A)*P(A)/P(B)
+      let countA = 0, countB = 0, countAB = 0;
+      for (let i = 0; i < c.length; i++) {
+        if (c[i] === last) countA++;
+        if (c[i] === opposite) countB++;
+        if (i > 0 && c[i-1] === last && c[i] === opposite) countAB++;
+      }
+      if (countA < 5) return null;
+
+      const pOppositeGivenLast = countAB / countA;
+      return {
+        pT: last === 'TAI' ? (1 - pOppositeGivenLast) * 100 : pOppositeGivenLast * 100,
+        pX: last === 'XIU' ? (1 - pOppositeGivenLast) * 100 : pOppositeGivenLast * 100,
+        conf: Math.abs(pOppositeGivenLast - 0.5) * 2,
+        suggest: pOppositeGivenLast > 0.5 ? opposite : last
+      };
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 4: DICE SUM ANALYSIS — Phân tích tổng xúc xắc
+       ============================================================ */
+    diceSumAnalysis() {
+      const totals = this.totals.filter(t => t != null);
+      if (totals.length < 20) return null;
+
+      // Trung bình động của tổng
+      const recent = totals.slice(-20);
+      const avg = recent.reduce((a,b) => a+b, 0) / recent.length;
+      const overall = totals.reduce((a,b) => a+b, 0) / totals.length;
+      
+      // Nếu avg gần 10.5 → cân bằng; xa → xu hướng
+      const deviation = avg - 10.5;
+      const trend = overall - 10.5;
+
+      // Xu hướng nghịch đảo (mean reversion)
+      let suggest;
+      if (avg > 12) suggest = 'XIU';
+      else if (avg < 9) suggest = 'TAI';
+      else if (trend > 0.5) suggest = 'XIU';
+      else if (trend < -0.5) suggest = 'TAI';
+      else return null;
+
+      const conf = Math.min(0.8, Math.abs(deviation) / 4);
+      return { avg, overall, deviation, conf, suggest };
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 5: STREAK REVERSAL — Đảo chuỗi
+       ============================================================ */
+    streakReversal() {
+      const c = this.history;
+      if (c.length < 10) return null;
+
+      let streak = 1;
+      for (let i = c.length-1; i > 0; i--) {
+        if (c[i] === c[i-1]) streak++;
+        else break;
+      }
+
+      // Streak >= 4 → xác suất đảo tăng
+      if (streak < 4) return null;
+
+      // Xem lịch sử: khi streak >= N, xác suất đảo là bao nhiêu?
+      let reverses = 0, total = 0;
+      for (let i = streak; i < c.length; i++) {
+        let s = 1;
+        for (let j = i-1; j > 0; j--) {
+          if (c[j] === c[j-1]) s++;
+          else break;
+        }
+        if (s >= streak) {
+          total++;
+          if (i < c.length && c[i] !== c[i-1]) reverses++;
+        }
+      }
+
+      if (total < 3) return null;
+      const pReverse = reverses / total;
+      const opposite = c[c.length-1] === 'TAI' ? 'XIU' : 'TAI';
+      return {
+        streak, total,
+        pReverse: pReverse * 100,
+        conf: pReverse,
+        suggest: pReverse > 0.5 ? opposite : c[c.length-1]
+      };
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 6: VOLATILITY — Độ biến động
+       ============================================================ */
+    volatility() {
+      const c = this.history;
+      if (c.length < 25) return null;
+
+      const win = c.slice(-25);
+      let changes = 0;
+      for (let i = 1; i < win.length; i++) {
+        if (win[i] !== win[i-1]) changes++;
+      }
+      const ratio = changes / (win.length - 1);
+
+      // Ratio > 0.65 → đang đảo liên tục → sắp có bệt
+      // Ratio < 0.35 → đang bệt → sắp đảo
+      if (ratio > 0.65) {
+        // Đang đảo → dự đoán tiếp tục theo chuỗi trước
+        const last = c[c.length-1];
+        return { ratio, suggest: last, conf: Math.min(0.75, ratio), type: 'high_vol' };
+      }
+      if (ratio < 0.35) {
+        const last = c[c.length-1];
+        const opposite = last === 'TAI' ? 'XIU' : 'TAI';
+        return { ratio, suggest: opposite, conf: Math.min(0.75, 1-ratio), type: 'low_vol' };
+      }
+      return null;
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 7: MOMENTUM — Động lượng có trọng số
+       ============================================================ */
+    momentum() {
+      const c = this.history;
+      if (c.length < 15) return null;
+
+      const win = c.slice(-15);
+      let scoreT = 0, scoreX = 0;
+      for (let i = 0; i < win.length; i++) {
+        const w = Math.exp(-(win.length - 1 - i) / 5); // decay
+        if (win[i] === 'TAI') scoreT += w;
+        else scoreX += w;
+      }
+      const total = scoreT + scoreX;
+      if (total < 1) return null;
+      const pT = scoreT / total;
+      const conf = Math.abs(pT - 0.5) * 2;
+      return {
+        pT: pT * 100, pX: (1-pT) * 100,
+        conf,
+        suggest: pT > 0.5 ? 'TAI' : 'XIU'
+      };
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 8: KNN — K-Nearest Neighbors
+       ============================================================ */
+    knn() {
+      const c = this.history;
+      const W = 6; // window
+      if (c.length < W + 20) return null;
+
+      const cur = c.slice(-W);
+      const matches = [];
+
+      for (let i = 0; i < c.length - W - 1; i++) {
+        let same = 0;
+        for (let j = 0; j < W; j++) {
+          if (c[i+j] === cur[j]) same++;
+        }
+        if (same >= W - 1) {
+          matches.push({ dist: W - same, next: c[i+W] });
+        }
+      }
+
+      if (matches.length < 5) return null;
+      matches.sort((a,b) => a.dist - b.dist);
+      const top = matches.slice(0, 12);
+      
+      let t = 0, x = 0;
+      for (const m of top) {
+        if (m.next === 'TAI') t++;
+        else x++;
+      }
+      const conf = Math.max(t, x) / top.length;
+      return {
+        matches: matches.length,
+        k: top.length,
+        pT: t / top.length * 100,
+        pX: x / top.length * 100,
+        conf,
+        suggest: t > x ? 'TAI' : 'XIU'
+      };
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 9: ENTROPY — Đo độ hỗn loạn
+       ============================================================ */
+    entropy() {
+      const c = this.history;
+      if (c.length < 20) return null;
+
+      const win = c.slice(-20);
+      let t = 0, x = 0;
+      for (const v of win) { if (v === 'TAI') t++; else x++; }
+      const pT = t / win.length;
+      const pX = x / win.length;
+
+      // Entropy Shannon
+      let H = 0;
+      if (pT > 0) H -= pT * Math.log2(pT);
+      if (pX > 0) H -= pX * Math.log2(pX);
+      
+      // H max = 1 khi 50/50, H min = 0 khi 100% một bên
+      // H thấp → dự đoán được
+      const conf = 1 - H;
+      return {
+        H,
+        pT: pT * 100, pX: pX * 100,
+        conf,
+        suggest: pT > pX ? 'TAI' : 'XIU'
+      };
+    }
+
+    /* ============================================================
+       THUẬT TOÁN 10: WEIGHTED VOTING — Bầu chọn có trọng số
+       ============================================================ */
+    weightedVoting() {
+      const algos = [
+        { name: 'Pattern', weight: 2.0, result: this.patternMatch() },
+        { name: 'Markov', weight: 1.8, result: this.markovChain() },
+        { name: 'Bayes', weight: 1.5, result: this.bayesian() },
+        { name: 'DiceSum', weight: 1.3, result: this.diceSumAnalysis() },
+        { name: 'Streak', weight: 1.7, result: this.streakReversal() },
+        { name: 'Volatility', weight: 1.4, result: this.volatility() },
+        { name: 'Momentum', weight: 1.5, result: this.momentum() },
+        { name: 'KNN', weight: 1.9, result: this.knn() },
+        { name: 'Entropy', weight: 1.0, result: this.entropy() }
+      ];
+
+      let scoreT = 0, scoreX = 0, totalWeight = 0;
+      const details = [];
+
+      for (const a of algos) {
+        if (!a.result) continue;
+        const conf = Math.min(1, a.result.conf || 0.5);
+        const w = a.weight * conf;
+        if (a.result.suggest === 'TAI') scoreT += w;
+        else scoreX += w;
+        totalWeight += w;
+        details.push({
+          name: a.name,
+          suggest: a.result.suggest,
+          conf: Math.round(conf * 100),
+          weight: w.toFixed(2)
+        });
+      }
+
+      if (totalWeight < 1) return null;
+      const pT = scoreT / totalWeight;
+      const pX = scoreX / totalWeight;
+      const total = scoreT + scoreX;
+      const finalConf = Math.max(scoreT, scoreX) / total;
+
+      return {
+        pT: pT * 100,
+        pX: pX * 100,
+        conf: finalConf,
+        suggest: scoreT > scoreX ? 'TAI' : 'XIU',
+        details,
+        algorithmsUsed: details.length
+      };
+    }
+
+    /* ============================================================
+       DỰ ĐOÁN TỔNG HỢP — Kết hợp tất cả
+       ============================================================ */
+    predict() {
+      const voting = this.weightedVoting();
+      
+      if (!voting) {
+        // Không đủ dữ liệu → dùng thuật toán đơn giản
+        return {
+          g: null,
+          conf: 0,
+          pT: 50,
+          pX: 50,
+          details: [],
+          algorithmsUsed: 0,
+          message: 'Đang thu thập dữ liệu...'
+        };
+      }
+
+      // Điều chỉnh độ tin cậy
+      let finalConf = voting.conf;
+      if (voting.algorithmsUsed < 3) finalConf *= 0.7;
+      else if (voting.algorithmsUsed < 5) finalConf *= 0.85;
+      else if (voting.algorithmsUsed >= 7) finalConf = Math.min(0.95, finalConf * 1.1);
+
+      return {
+        g: voting.suggest,
+        conf: Math.round(finalConf * 100),
+        pT: voting.pT,
+        pX: voting.pX,
+        details: voting.details,
+        algorithmsUsed: voting.algorithmsUsed
+      };
+    }
+  }
+
+  return { Yq: TaiXiuEngine, predict: (eng) => eng.predict() };
+})();
+
+window.TEEngine = TEEngine;
